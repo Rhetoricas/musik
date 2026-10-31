@@ -68,7 +68,7 @@
     <summary id="drawer-summary">Vælg afspilningsenhed (højttaler) ▾</summary>
     <div class="drawer-content">
       <label for="device-select">Vælg højttaler</label>
-      <select id="device-select" onchange="updateSummary()"></select>
+      <select id="device-select" onchange="switchDevice()"></select>
       <button class="btn btn-small" onclick="loadDevices()">Opdater liste over højttalere</button>
       <div class="toggle-row">
         <span>10-sekunders auto-pause</span>
@@ -169,6 +169,21 @@
       }
     }
 
+    async function switchDevice() {
+      updateSummary();
+      const selectedDeviceId = document.getElementById("device-select").value;
+      if (!token || !selectedDeviceId) return;
+
+      await fetch("https://api.spotify.com/v1/me/player", {
+        method: "PUT",
+        body: JSON.stringify({ device_ids: [selectedDeviceId], play: false }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+    }
+
     async function loadDevices() {
       if (!token) return;
       const res = await fetch("https://api.spotify.com/v1/me/player/devices", {
@@ -194,7 +209,7 @@
       } else {
         const opt = document.createElement("option");
         opt.value = "";
-        opt.textContent = "Ingen aktive enheder fundet - åbn Spotify på din højttaler";
+        opt.textContent = "Ingen aktive enheder fundet";
         select.appendChild(opt);
         document.getElementById("device-panel").open = true;
       }
@@ -205,7 +220,6 @@
     }
 
     function startScanner() {
-      document.getElementById(" playback-panel");
       document.getElementById("playback-panel").style.display = "none";
       html5QrCode = new Html5Qrcode("reader");
       html5QrCode.start(
