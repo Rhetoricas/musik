@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blind Musikquiz</title>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://sdk.scdn.co/spotify-player.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #121212; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 20px 16px; }
+    h1 { font-size: 1.5rem; margin-bottom: 12px; font-weight: 700; text-align: center; }
+    .card { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 12px; padding: 18px; width: 100%; max-width: 480px; margin-bottom: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+    .btn { background: #1db954; color: #000; border: none; padding: 12px 20px; font-size: 1rem; font-weight: 700; border-radius: 24px; cursor: pointer; width: 100%; transition: opacity 0.15s ease; }
+    .btn:hover { opacity: 0.9; }
+    .btn-secondary { background: #333; color: #fff; margin-top: 8px; }
+    .btn-reveal { background: #ff7900; color: #fff; font-size: 1.2rem; padding: 16px; margin-top: 16px; }
+    input[type="text"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 0.95rem; margin-top: 8px; margin-bottom: 12px; }
+    #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #000; margin-top: 10px; }
+    .pulse-disc { width: 120px; height: 120px; border-radius: 50%; background: #1db954; margin: 24px auto; animation: pulse 1.6s infinite ease-in-out; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; }
+    @keyframes pulse {
+      0% { transform: scale(0.92); opacity: 0.7; }
+      50% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(0.92); opacity: 0.7; }
+    }
+    .track-details { text-align: center; margin-top: 14px; animation: fadeIn 0.4s ease forwards; }
+    .track-details img { width: 220px; height: 220px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.6); margin-bottom: 12px; }
+    .track-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+    .track-artist { font-size: 1rem; color: #b3b3b3; }
+    .status-text { font-size: 0.85rem; color: #888; text-align: center; margin-top: 8px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+  <h1>Blind Musikquiz</h1>
+
+  <div id="auth-panel" class="card">
+    <label for="client-id" style="font-size: 0.85rem; color: #aaa;">Spotify Client ID</label>
+    <input type="text" id="client-id" placeholder="Indsæt dit Client ID her">
+    <button class="btn" onclick="loginWithSpotify()">Forbind med Spotify</button>
+    <div class="status-text" id="auth-status">Log ind for at starte afspilleren</div>
+  </div>
+
+  <div id="scanner-panel" class="card" style="display: none;">
+    <button class="btn" id="scan-toggle-btn" onclick="toggleScanner()">Tænd QR Scanner</button>
+    <div id="reader"></div>
+  </div>
+
+  <div id="playback-panel" class="card" style="display: none;">
+    <div id="blind-view">
+      <div class="pulse-disc">🎵</div>
+      <p style="text-align: center; font-weight: 600;">Sangen spiller i baggrunden...</p>
+      <button class="btn btn-reveal" onclick="revealTrack()">Afslør sang</button>
+    </div>
+
+    <div id="revealed-view" class="track-details" style="display: none;">
+      <img id="track-cover" src="" alt="Album cover">
+      <div id="track-name" class="track-title"></div>
+      <div id="track-artist" class="track-artist"></div>
+      <button class="btn btn-secondary" style="margin-top: 16px;" onclick="resetForNextSong()">Scan næste sang</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "spotify_blind_quiz_client_id";
+    const VERIFIER_KEY = "spotify_pkce_verifier";
+    let token = null;
+    let player = null;
+    let deviceId = null;
+    let html5QrCode = null;
+    let isScanning = false;
+    let currentTrackInfo = null;
+
+    function generateRandomString(length) {
+      const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      const values = crypto.getRandomValues(new Uint8Array(length));
+      return values.reduce((acc, x) => acc + possible[x % possible.length], "");
+    }
+
+    async function sha256(plain) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(plain);
+      return window.crypto.subtle.digest('SHA-256', data);
+    }
+
+    function base64encode(input) {
+      return btoa(String.fromCharCode(...new Uint8Array(input)))
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+    }
+
+    window.addEventListener("load", async () => {
+      const storedId = localStorage.getItem(STORAGE_KEY);
+      if (storedId) document.getElementById("client-id").value = storedId;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+
+      if (code && storedId) {
+        const codeVerifier = localStorage.getItem(VERIFIER_KEY);
+        const redirectUri = window.location.origin + window.location.pathname;
+
+        try {
+          const response = await fetch('https://accounts.spotify.com/api/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              client_id: storedId,
+              grant_type: 'authorization_code',
+              code: code,
+              redirect_uri: redirectUri,
+              code_verifier: codeVerifier,
+            }),
+          });
+
+          const data = await response.json();
+          if (data.access_token) {
+            token = data.access_token;
+            window.history.replaceState({}, document.title, window.location.pathname);
+            document.getElementById("auth-panel").style.display = "none";
+            document.getElementById("scanner-panel").style.display = "block";
+            initSpotifyPlayer();
+          } else {
+            alert("Fejl ved login: " + (data.error_description || data.error));
+          }
+        } catch (err) {
+          alert("Netværksfejl ved token-udveksling: " + err);
+        }
+      }
+    });
+
+    async function loginWithSpotify() {
+      const clientId = document.getElementById("client-id").value.trim();
+      if (!clientId) {
+        alert("Indtast dit Spotify Client ID først.");
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, clientId);
+
+      const codeVerifier = generateRandomString(64);
+      localStorage.setItem(VERIFIER_KEY, codeVerifier);
+
+      const hashed = await sha256(codeVerifier);
+      const codeChallenge = base64encode(hashed);
+
+      const redirectUri = window.location.origin + window.location.pathname;
+      const scopes = "streaming user-read-email user-read-private user-modify-playback-state";
+
+      const authUrl = new URL("https://accounts.spotify.com/authorize");
+      authUrl.search = new URLSearchParams({
+        response_type: 'code',
+        client_id: clientId,
+        scope: scopes,
+        code_challenge_method: 'S256',
+        code_challenge: codeChallenge,
+        redirect_uri: redirectUri,
+      }).toString();
+
+      window.location.href = authUrl.toString();
+    }
+
+    window.onSpotifyWebPlaybackSDKReady = () => {
+      if (token) initSpotifyPlayer();
+    };
+
+    function initSpotifyPlayer() {
+      if (!token || player) return;
+
+      player = new Spotify.Player({
+        name: 'Blind Musikquiz Web Player',
+        getOAuthToken: cb => { cb(token); },
+        volume: 0.8
+      });
+
+      player.addListener('ready', ({ device_id }) => {
+        deviceId = device_id;
+      });
+
+      player.addListener('player_state_changed', state => {
+        if (!state) return;
+        const currentTrack = state.track_window.current_track;
+        if (currentTrack) {
+          currentTrackInfo = {
+            name: currentTrack.name,
+            artist: currentTrack.artists.map(a => a.name).join(", "),
+            cover: currentTrack.album.images[0]?.url || ""
+          };
+        }
+      });
+
+      player.connect();
+    }
+
+    function toggleScanner() {
+      if (isScanning) {
+        stopScanner();
+      } else {
+        startScanner();
+      }
+    }
+
+    function startScanner() {
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          handleScannedCode(decodedText);
+          stopScanner();
+        },
+        () => {}
+      ).then(() => {
+        isScanning = true;
+        document.getElementById("scan-toggle-btn").textContent = "Stop scanner";
+      }).catch(err => {
+        alert("Kunne ikke starte kamera: " + err);
+      });
+    }
+
+    function stopScanner() {
+      if (html5QrCode && isScanning) {
+        html5QrCode.stop().then(() => {
+          isScanning = false;
+          document.getElementById("scan-toggle-btn").textContent = "Tænd QR Scanner";
+        });
+      }
+    }
+
+    function extractSpotifyUri(raw) {
+      if (raw.startsWith("spotify:track:")) return raw;
+      const urlMatch = raw.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?track\/([a-zA-Z0-9]+)/);
+      if (urlMatch) return `spotify:track:${urlMatch[1]}`;
+      if (/^[a-zA-Z0-9]{22}$/.test(raw.trim())) return `spotify:track:${raw.trim()}`;
+      return null;
+    }
+
+    async function handleScannedCode(code) {
+      const uri = extractSpotifyUri(code);
+      if (!uri) {
+        alert("Ikke en gyldig Spotify sang-kode: " + code);
+        return;
+      }
+
+      if (!deviceId) {
+        alert("Afspilleren forbinder stadig til Spotify. Prøv igen om et øjeblik.");
+        return;
+      }
+
+      document.getElementById("playback-panel").style.display = "block";
+      document.getElementById("blind-view").style.display = "block";
+      document.getElementById("revealed-view").style.display = "none";
+
+      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+        method: "PUT",
+        body: JSON.stringify({ uris: [uri] }),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+    }
+
+    function revealTrack() {
+      if (!currentTrackInfo) return;
+      document.getElementById("track-cover").src = currentTrackInfo.cover;
+      document.getElementById("track-name").textContent = currentTrackInfo.name;
+      document.getElementById("track-artist").textContent = currentTrackInfo.artist;
+
+      document.getElementById("blind-view").style.display = "none";
+      document.getElementById("revealed-view").style.display = "block";
+    }
+
+    function resetForNextSong() {
+      if (player) player.pause();
+      document.getElementById("playback-panel").style.display = "none";
+      startScanner();
+    }
+  </script>
+</body>
+</html>
