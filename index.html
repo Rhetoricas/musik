@@ -14,8 +14,10 @@
     .btn { background: #1db954; color: #000; border: none; padding: 12px 20px; font-size: 1rem; font-weight: 700; border-radius: 24px; cursor: pointer; width: 100%; transition: opacity 0.15s ease; }
     .btn:hover { opacity: 0.9; }
     .btn-secondary { background: #333; color: #fff; margin-top: 8px; }
+    .btn-small { background: #2a2a2a; color: #ccc; font-size: 0.85rem; padding: 8px 12px; border-radius: 8px; margin-top: 8px; font-weight: 600; }
     .btn-reveal { background: #ff7900; color: #fff; font-size: 1.2rem; padding: 16px; margin-top: 16px; }
-    input[type="text"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 0.95rem; margin-top: 8px; margin-bottom: 12px; }
+    input[type="text"], select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #2a2a2a; color: #fff; font-size: 0.95rem; margin-top: 8px; margin-bottom: 8px; }
+    label { font-size: 0.85rem; color: #aaa; display: block; }
     #reader { width: 100%; border-radius: 8px; overflow: hidden; background: #000; margin-top: 10px; }
     .pulse-disc { width: 120px; height: 120px; border-radius: 50%; background: #1db954; margin: 24px auto; animation: pulse 1.6s infinite ease-in-out; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; }
     @keyframes pulse {
@@ -33,13 +35,19 @@
 </head>
 <body>
 
-  <h1>LEARN MUSIC</h1>
+  <h1>Learn Music</h1>
 
   <div id="auth-panel" class="card">
-    <label for="client-id" style="font-size: 0.85rem; color: #aaa;">Spotify Client ID</label>
+    <label for="client-id">Spotify Client ID</label>
     <input type="text" id="client-id" placeholder="Indsæt dit Client ID her">
     <button class="btn" onclick="loginWithSpotify()">Forbind med Spotify</button>
     <div class="status-text" id="auth-status">Log ind for at starte afspilleren</div>
+  </div>
+
+  <div id="device-panel" class="card" style="display: none;">
+    <label for="device-select">Vælg afspilningsenhed (højttaler)</label>
+    <select id="device-select"></select>
+    <button class="btn btn-small" onclick="loadDevices()">Opdater liste over højttalere</button>
   </div>
 
   <div id="scanner-panel" class="card" style="display: none;">
@@ -50,7 +58,7 @@
   <div id="playback-panel" class="card" style="display: none;">
     <div id="blind-view">
       <div class="pulse-disc">🎵</div>
-      <p style="text-align: center; font-weight: 600;">Sangen spiller i baggrunden...</p>
+      <p style="text-align: center; font-weight: 600;">Sangen spiller på valgt enhed...</p>
       <button class="btn btn-reveal" onclick="revealTrack()">Afslør sang</button>
     </div>
 
@@ -63,11 +71,11 @@
   </div>
 
   <script>
-    const STORAGE_KEY = "spotify_blind_quiz_client_id";
+    const STORAGE_KEY = "spotify_learn_music_client_id";
     const VERIFIER_KEY = "spotify_pkce_verifier";
     let token = null;
     let player = null;
-    let deviceId = null;
+    let webPlayerDeviceId = null;
     let html5QrCode = null;
     let isScanning = false;
     let currentTrackInfo = null;
@@ -120,8 +128,10 @@
             token = data.access_token;
             window.history.replaceState({}, document.title, window.location.pathname);
             document.getElementById("auth-panel").style.display = "none";
+            document.getElementById("device-panel").style.display = "block";
             document.getElementById("scanner-panel").style.display = "block";
             initSpotifyPlayer();
+            loadDevices();
           } else {
             alert("Fejl ved login: " + (data.error_description || data.error));
           }
@@ -146,7 +156,7 @@
       const codeChallenge = base64encode(hashed);
 
       const redirectUri = window.location.origin + window.location.pathname;
-      const scopes = "streaming user-read-email user-read-private user-modify-playback-state";
+      const scopes = "streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state";
 
       const authUrl = new URL("https://accounts.spotify.com/authorize");
       authUrl.search = new URLSearchParams({
@@ -166,31 +176,58 @@
     };
 
     function initSpotifyPlayer() {
-      if (!token || player) return;
+      if (!token || player || !window.Spotify) return;
 
       player = new Spotify.Player({
-        name: 'Blind Musikquiz Web Player',
+        name: 'Learn Music (Denne browser)',
         getOAuthToken: cb => { cb(token); },
         volume: 0.8
       });
 
       player.addListener('ready', ({ device_id }) => {
-        deviceId = device_id;
-      });
-
-      player.addListener('player_state_changed', state => {
-        if (!state) return;
-        const currentTrack = state.track_window.current_track;
-        if (currentTrack) {
-          currentTrackInfo = {
-            name: currentTrack.name,
-            artist: currentTrack.artists.map(a => a.name).join(", "),
-            cover: currentTrack.album.images[0]?.url || ""
-          };
-        }
+        webPlayerDeviceId = device_id;
+        loadDevices();
       });
 
       player.connect();
+    }
+
+    async function loadDevices() {
+      if (!token) return;
+      try {
+        const res = await fetch("https://api.spotify.com/v1/me/player/devices", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        const select = document.getElementById("device-select");
+        const previousValue = select.value;
+        select.innerHTML = "";
+
+        if (data.devices && data.devices.length > 0) {
+          data.devices.forEach(dev => {
+            const opt = document.createElement("option");
+            opt.value = dev.id;
+            opt.textContent = `${dev.name} (${dev.type})`;
+            if (dev.is_active) opt.selected = true;
+            select.appendChild(opt);
+          });
+          if (previousValue && Array.from(select.options).some(o => o.value === previousValue)) {
+            select.value = previousValue;
+          }
+        } else if (webPlayerDeviceId) {
+          const opt = document.createElement("option");
+          opt.value = webPlayerDeviceId;
+          opt.textContent = "Learn Music (Denne browser)";
+          select.appendChild(opt);
+        } else {
+          const opt = document.createElement("option");
+          opt.value = "";
+          opt.textContent = "Ingen aktive enheder fundet - åbn Spotify på din højttaler";
+          select.appendChild(opt);
+        }
+      } catch (e) {
+        console.error("Kunne ikke hente enheder:", e);
+      }
     }
 
     function toggleScanner() {
@@ -228,23 +265,24 @@
       }
     }
 
-    function extractSpotifyUri(raw) {
-      if (raw.startsWith("spotify:track:")) return raw;
+    function extractTrackId(raw) {
+      if (raw.startsWith("spotify:track:")) return raw.split(":")[2];
       const urlMatch = raw.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?track\/([a-zA-Z0-9]+)/);
-      if (urlMatch) return `spotify:track:${urlMatch[1]}`;
-      if (/^[a-zA-Z0-9]{22}$/.test(raw.trim())) return `spotify:track:${raw.trim()}`;
+      if (urlMatch) return urlMatch[1];
+      if (/^[a-zA-Z0-9]{22}$/.test(raw.trim())) return raw.trim();
       return null;
     }
 
     async function handleScannedCode(code) {
-      const uri = extractSpotifyUri(code);
-      if (!uri) {
+      const trackId = extractTrackId(code);
+      if (!trackId) {
         alert("Ikke en gyldig Spotify sang-kode: " + code);
         return;
       }
 
-      if (!deviceId) {
-        alert("Afspilleren forbinder stadig til Spotify. Prøv igen om et øjeblik.");
+      const selectedDeviceId = document.getElementById("device-select").value || webPlayerDeviceId;
+      if (!selectedDeviceId) {
+        alert("Vælg en højttaler/enhed på listen først (tryk evt. 'Opdater liste').");
         return;
       }
 
@@ -252,9 +290,23 @@
       document.getElementById("blind-view").style.display = "block";
       document.getElementById("revealed-view").style.display = "none";
 
-      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+      // Hent metadata om sangen i baggrunden (så det virker på alle højttalere)
+      fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(track => {
+        currentTrackInfo = {
+          name: track.name,
+          artist: track.artists.map(a => a.name).join(", "),
+          cover: track.album.images[0]?.url || ""
+        };
+      });
+
+      // Start afspilning på den valgte højttaler
+      await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${selectedDeviceId}`, {
         method: "PUT",
-        body: JSON.stringify({ uris: [uri] }),
+        body: JSON.stringify({ uris: [`spotify:track:${trackId}`] }),
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
@@ -272,8 +324,14 @@
       document.getElementById("revealed-view").style.display = "block";
     }
 
-    function resetForNextSong() {
-      if (player) player.pause();
+    async function resetForNextSong() {
+      const selectedDeviceId = document.getElementById("device-select").value || webPlayerDeviceId;
+      if (selectedDeviceId) {
+        await fetch(`https://api.spotify.com/v1/me/player/pause?device_id=${selectedDeviceId}`, {
+          method: "PUT",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+      }
       document.getElementById("playback-panel").style.display = "none";
       startScanner();
     }
