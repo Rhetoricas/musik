@@ -7,49 +7,63 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 12px; }
+    body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 12px; }
     .main-wrap { width: 100%; max-width: 960px; display: flex; flex-direction: column; flex: 1; justify-content: flex-start; }
-    .btn-fs { width: 100%; background: #000; color: #fff; border: 1px solid #fff; padding: 10px; margin-bottom: 12px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; }
+    .btn-fs { width: 100%; background: #000; color: #fff; border: 1px solid #fff; padding: 10px; margin-bottom: 10px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; }
     .btn-fs.hidden { display: none; }
     .panel { width: 100%; }
-    .btn { background: #fff; color: #000; border: 1px solid #fff; padding: 15px 18px; font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; width: 100%; text-align: center; display: block; }
+    .btn { background: #fff; color: #000; border: 1px solid #fff; padding: 13px 16px; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; width: 100%; text-align: center; display: block; }
     .btn-outline { background: #000; color: #fff; border: 1px solid #fff; }
-    .btn-next { background: #08160c; color: #a7f3d0; border: 1px solid #52b788; }
     .btn-small { background: #000; color: #ccc; border: 1px solid #444; font-size: 0.8rem; padding: 10px 12px; margin-top: 8px; font-weight: 700; text-transform: uppercase; }
     .btn-talk.active { background: #fff; color: #000; border-color: #fff; }
-    .split-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
-    .split-buttons .btn { min-height: 96px; padding: 16px 10px; display: flex; align-items: center; justify-content: center; line-height: 1.25; }
+    .score-section { width: 100%; display: flex; flex-direction: column; gap: 5px; }
+    .score-bar-header { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #a7f3d0; }
+    .points-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; }
+    .btn-pt { background: #08160c; color: #a7f3d0; border: 1px solid #52b788; min-height: 54px; font-size: 1.3rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .btn-pt-max { background: #0f2918; color: #fff; border: 2px solid #a7f3d0; }
+    .btn-pt:active { background: #a7f3d0; color: #000; }
     input[type="text"], select { width: 100%; padding: 12px; border: 1px solid #666; background: #000; color: #fff; font-size: 0.95rem; margin-top: 8px; margin-bottom: 12px; }
     label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; display: block; }
     #reader { width: 100%; background: #000; border: 1px solid #333; }
-    .stage-grid { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; align-items: start; }
-    .visual-column { width: 100%; display: flex; flex-direction: column; gap: 10px; }
-    .controls-column { width: 100%; display: flex; flex-direction: column; gap: 10px; }
-    .status-box { border: 2px solid #fff; padding: 24px 16px; text-align: center; background: #000; }
+    .stage-grid { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; align-items: start; }
+    .visual-column { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .controls-column { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+    .status-box { border: 2px solid #fff; padding: 18px 16px; text-align: center; background: #000; }
     .status-box.paused { background: #fff; color: #000; }
-    .timer-readout { font-size: 3.8rem; font-weight: 900; line-height: 1; letter-spacing: -0.03em; margin-bottom: 8px; }
-    .status-label { font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .timer-readout { font-size: 3.4rem; font-weight: 900; line-height: 1; letter-spacing: -0.03em; margin-bottom: 6px; }
+    .status-label { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
     .cover-wrap { width: 100%; border: 1px solid #fff; background: #000; display: none; }
-    .cover-wrap img { width: 100%; max-height: 36vh; object-fit: contain; display: block; margin: 0 auto; }
+    .cover-wrap img { width: 100%; max-height: 28vh; object-fit: contain; display: block; margin: 0 auto; }
     @media (orientation: landscape) {
       .stage-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
-      .cover-wrap img { max-height: 52vh; }
+      .cover-wrap img { max-height: 44vh; }
     }
-    .help-box { border: 1px solid #fff; padding: 12px; background: #000; }
-    .box-header { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 700; }
-    .help-option-item { font-size: 1.15rem; font-weight: 700; color: #fff; padding: 8px 0; border-bottom: 1px solid #333; }
+    .help-box { border: 1px solid #fff; padding: 10px 12px; background: #000; }
+    .box-header { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; font-weight: 700; }
+    .help-option-item { font-size: 1.1rem; font-weight: 700; color: #fff; padding: 6px 0; border-bottom: 1px solid #333; }
     .help-option-item:last-child { border-bottom: none; padding-bottom: 0; }
     .help-option-item:first-child { padding-top: 0; }
-    .bonus-box { border: 2px solid #fff; padding: 14px; background: #fff; color: #000; text-align: center; }
+    .bonus-box { border: 2px solid #fff; padding: 12px; background: #fff; color: #000; text-align: center; }
     .bonus-box .box-header { color: #444; margin-bottom: 4px; }
-    .bonus-a { font-size: 1.4rem; font-weight: 900; }
-    details.settings-drawer { width: 100%; max-width: 960px; background: #000; border-top: 1px solid #333; padding: 12px 0 0 0; margin-top: 16px; color: #aaa; font-size: 0.85rem; }
+    .bonus-a { font-size: 1.35rem; font-weight: 900; }
+    .score-footer { width: 100%; text-align: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid #222; }
+    .total-points-large { font-size: 2.8rem; font-weight: 900; line-height: 1; color: #fff; letter-spacing: -0.03em; }
+    .total-cards-small { font-size: 0.78rem; font-weight: 600; color: #777; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .fh-overlay { position: fixed; inset: 0; background: #fff; color: #000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; z-index: 9999; cursor: pointer; }
+    .fh-title { font-size: 3.2rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em; line-height: 1.05; margin-bottom: 16px; border-bottom: 4px solid #000; padding-bottom: 16px; }
+    .fh-sub { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
+    details.settings-drawer { width: 100%; max-width: 960px; background: #000; border-top: 1px solid #222; padding: 10px 0 0 0; margin-top: 10px; color: #666; font-size: 0.8rem; }
     details.settings-drawer summary { cursor: pointer; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; list-style: none; display: flex; justify-content: space-between; align-items: center; }
     .drawer-content { margin-top: 12px; padding-top: 12px; border-top: 1px solid #222; }
     .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid #222; color: #fff; font-weight: 600; }
   </style>
 </head>
 <body>
+
+  <div id="full-house-overlay" class="fh-overlay" onclick="dismissFullHouseNow()">
+    <div class="fh-title">6 POINT. FULDT HUS.</div>
+    <div class="fh-sub">Fjern et kort fra bordet</div>
+  </div>
 
   <div class="main-wrap">
     <button id="fullscreen-btn" class="btn-fs" onclick="enterFullscreenAndWakeLock()">Fuldskærm</button>
@@ -77,9 +91,19 @@
             <img id="album-cover-img" src="" alt="Pladecover">
           </div>
 
-          <div class="split-buttons">
-            <button class="btn btn-outline btn-talk" id="btn-talk-volume" onclick="toggleTalkVolume()">Dæmp lyden (20%)</button>
-            <button class="btn btn-next" onclick="resetForNextSong()">Scan næste kort</button>
+          <button class="btn btn-outline btn-talk" id="btn-talk-volume" onclick="toggleTalkVolume()">Dæmp lyden (20%)</button>
+
+          <div class="score-section">
+            <div class="score-bar-header">Giv point + scan næste</div>
+            <div class="points-grid">
+              <button class="btn-pt" onclick="recordScoreAndScan(0)">0</button>
+              <button class="btn-pt" onclick="recordScoreAndScan(1)">1</button>
+              <button class="btn-pt" onclick="recordScoreAndScan(2)">2</button>
+              <button class="btn-pt" onclick="recordScoreAndScan(3)">3</button>
+              <button class="btn-pt" onclick="recordScoreAndScan(4)">4</button>
+              <button class="btn-pt" onclick="recordScoreAndScan(5)">5</button>
+              <button class="btn-pt btn-pt-max" onclick="recordScoreAndScan(6)">6</button>
+            </div>
           </div>
         </div>
 
@@ -101,6 +125,11 @@
           </div>
         </div>
       </div>
+
+      <div class="score-footer">
+        <div class="total-points-large" id="total-points-display">0</div>
+        <div class="total-cards-small" id="total-cards-display">0 kort</div>
+      </div>
     </div>
   </div>
 
@@ -114,7 +143,8 @@
         <span>10s lyt + 20s tænkepause</span>
         <input type="checkbox" id="speed-mode-toggle" checked style="width: 22px; height: 22px;">
       </div>
-      <button class="btn btn-small" style="margin-top: 14px;" onclick="forceRelogin()">Log ind på Spotify på ny</button>
+      <button class="btn btn-small" style="margin-top: 12px;" onclick="resetGameScore()">Nulstil point (nyt spil)</button>
+      <button class="btn btn-small" style="margin-top: 8px;" onclick="forceRelogin()">Log ind på Spotify på ny</button>
     </div>
   </details>
 
@@ -126,6 +156,7 @@
     const EXPIRES_KEY = "spotify_token_expires_at";
     const DEVICE_KEY = "spotify_saved_device_id";
     const DEVICE_NAME_KEY = "spotify_saved_device_name";
+    const SCORE_HISTORY_KEY = "spotify_game_score_history";
 
     let token = null;
     let html5QrCode = null;
@@ -133,6 +164,7 @@
     let speedTimer = null;
     let pauseTimer = null;
     let countdownInterval = null;
+    let fullHouseTimer = null;
     let isTalkVolume = false;
     let normalVolume = 60;
     let wakeLockSentinel = null;
@@ -140,6 +172,38 @@
     let currentCorrectAnswer = "";
     let currentOptions = [];
     let currentCoverUrl = "";
+    let scoreHistory = [];
+
+    function loadScoreHistory() {
+      try {
+        const raw = localStorage.getItem(SCORE_HISTORY_KEY);
+        scoreHistory = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(scoreHistory)) scoreHistory = [];
+      } catch (e) {
+        scoreHistory = [];
+      }
+      updateScoreUI();
+    }
+
+    function saveScoreHistory() {
+      localStorage.setItem(SCORE_HISTORY_KEY, JSON.stringify(scoreHistory));
+      updateScoreUI();
+    }
+
+    function updateScoreUI() {
+      const cardsCount = scoreHistory.length;
+      const totalPoints = scoreHistory.reduce((sum, pts) => sum + pts, 0);
+      const ptsEl = document.getElementById("total-points-display");
+      const cardsEl = document.getElementById("total-cards-display");
+      if (ptsEl) ptsEl.textContent = totalPoints;
+      if (cardsEl) cardsEl.textContent = `${cardsCount} kort`;
+    }
+
+    function resetGameScore() {
+      if (!confirm("Vil du nulstille alle point og starte et nyt spil?")) return;
+      scoreHistory = [];
+      saveScoreHistory();
+    }
 
     function generateRandomString(length) {
       const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -283,6 +347,8 @@
     }
 
     window.addEventListener("load", async () => {
+      loadScoreHistory();
+
       const storedId = localStorage.getItem(STORAGE_KEY);
       if (storedId) document.getElementById("client-id").value = storedId;
 
@@ -759,17 +825,40 @@
       document.getElementById("btn-get-help").style.display = "none";
     }
 
-    async function resetForNextSong() {
+    function dismissFullHouseNow() {
+      if (fullHouseTimer) {
+        clearTimeout(fullHouseTimer);
+        fullHouseTimer = null;
+      }
+      document.getElementById("full-house-overlay").style.display = "none";
+      startScanner();
+    }
+
+    async function recordScoreAndScan(points) {
       enterFullscreenAndWakeLock();
       clearTimers();
+
+      scoreHistory.push(points);
+      saveScoreHistory();
+
       const selectedDeviceId = document.getElementById("device-select").value || localStorage.getItem(DEVICE_KEY);
       if (selectedDeviceId) {
-        await spotifyFetch(`https://api.spotify.com/v1/me/player/pause?device_id=${selectedDeviceId}`, {
+        spotifyFetch(`https://api.spotify.com/v1/me/player/pause?device_id=${selectedDeviceId}`, {
           method: "PUT"
         });
       }
+
       document.getElementById("playback-panel").style.display = "none";
-      startScanner();
+
+      if (points === 6) {
+        const overlay = document.getElementById("full-house-overlay");
+        overlay.style.display = "flex";
+        fullHouseTimer = setTimeout(() => {
+          dismissFullHouseNow();
+        }, 1800);
+      } else {
+        startScanner();
+      }
     }
   </script>
 </body>
