@@ -21,7 +21,7 @@
     .split-buttons .btn { min-height: 96px; padding: 16px 10px; display: flex; align-items: center; justify-content: center; line-height: 1.25; }
     input[type="text"], select { width: 100%; padding: 12px; border: 1px solid #666; background: #000; color: #fff; font-size: 0.95rem; margin-top: 8px; margin-bottom: 12px; }
     label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; display: block; }
-    #reader { width: 100%; background: #000; margin-top: 12px; border: 1px solid #333; }
+    #reader { width: 100%; background: #000; border: 1px solid #333; }
     .stage-grid { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; align-items: start; }
     .visual-column { width: 100%; display: flex; flex-direction: column; gap: 10px; }
     .controls-column { width: 100%; display: flex; flex-direction: column; gap: 10px; }
@@ -61,7 +61,7 @@
     </div>
 
     <div id="scanner-panel" class="panel" style="display: none;">
-      <button class="btn" id="scan-toggle-btn" onclick="toggleScanner()">Tænd QR Scanner</button>
+      <button class="btn" id="scan-start-btn" style="margin-bottom: 12px;" onclick="initScannerFromTap()">Start scanner</button>
       <div id="reader"></div>
     </div>
 
@@ -498,37 +498,42 @@
       }
     }
 
-    function toggleScanner() {
+    function initScannerFromTap() {
       enterFullscreenAndWakeLock();
-      isScanning ? stopScanner() : startScanner();
+      startScanner();
     }
 
     function startScanner() {
+      if (isScanning) return;
       document.getElementById("playback-panel").style.display = "none";
       document.getElementById("scanner-panel").style.display = "block";
+      document.getElementById("scan-start-btn").style.display = "none";
+
       html5QrCode = new Html5Qrcode("reader");
       html5QrCode.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          handleScannedCode(decodedText);
-          stopScanner();
+          stopScannerAndPlay(decodedText);
         },
         () => {}
       ).then(() => {
         isScanning = true;
-        document.getElementById("scan-toggle-btn").textContent = "Stop scanner";
       }).catch(err => {
+        document.getElementById("scan-start-btn").style.display = "block";
         alert("Kunne ikke starte kamera: " + err);
       });
     }
 
-    function stopScanner() {
+    function stopScannerAndPlay(decodedText) {
       if (html5QrCode && isScanning) {
+        isScanning = false;
         html5QrCode.stop().then(() => {
-          isScanning = false;
-          document.getElementById("scan-toggle-btn").textContent = "Tænd QR Scanner";
           document.getElementById("scanner-panel").style.display = "none";
+          handleScannedCode(decodedText);
+        }).catch(() => {
+          document.getElementById("scanner-panel").style.display = "none";
+          handleScannedCode(decodedText);
         });
       }
     }
@@ -611,13 +616,17 @@
       clearTimers();
       const { trackId, correctAnswer, options } = parseQrPayload(code);
       if (!trackId || !correctAnswer || options.length < 3) {
-        return alert("Ugyldig QR-kode. Formatet skal være: Spotify-link|Korrekt svar|Forkert svar 1|Forkert svar 2");
+        alert("Ugyldig QR-kode. Formatet skal være: Spotify-link|Korrekt svar|Forkert svar 1|Forkert svar 2");
+        startScanner();
+        return;
       }
 
       const selectedDeviceId = document.getElementById("device-select").value || localStorage.getItem(DEVICE_KEY);
       if (!selectedDeviceId) {
         document.getElementById("device-panel").open = true;
-        return alert("Vælg en højttaler på listen nederst først.");
+        alert("Vælg en højttaler på listen nederst først.");
+        startScanner();
+        return;
       }
 
       currentCorrectAnswer = correctAnswer;
