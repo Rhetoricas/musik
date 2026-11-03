@@ -14,9 +14,11 @@
     .panel { width: 100%; }
     .btn { background: #fff; color: #000; border: 1px solid #fff; padding: 15px 18px; font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; width: 100%; text-align: center; display: block; }
     .btn-outline { background: #000; color: #fff; border: 1px solid #fff; }
-    .btn-subtle { background: #000; color: #aaa; border: 1px solid #444; }
+    .btn-next { background: #08160c; color: #a7f3d0; border: 1px solid #52b788; }
     .btn-small { background: #000; color: #ccc; border: 1px solid #444; font-size: 0.8rem; padding: 10px 12px; margin-top: 8px; font-weight: 700; text-transform: uppercase; }
     .btn-talk.active { background: #fff; color: #000; border-color: #fff; }
+    .split-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+    .split-buttons .btn { min-height: 96px; padding: 16px 10px; display: flex; align-items: center; justify-content: center; line-height: 1.25; }
     input[type="text"], select { width: 100%; padding: 12px; border: 1px solid #666; background: #000; color: #fff; font-size: 0.95rem; margin-top: 8px; margin-bottom: 12px; }
     label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; display: block; }
     #reader { width: 100%; background: #000; margin-top: 12px; border: 1px solid #333; }
@@ -75,8 +77,10 @@
             <img id="album-cover-img" src="" alt="Pladecover">
           </div>
 
-          <button class="btn btn-outline btn-talk" id="btn-talk-volume" onclick="toggleTalkVolume()">Dæmp lyden (20%)</button>
-          <button class="btn btn-subtle" onclick="resetForNextSong()">Scan næste kort</button>
+          <div class="split-buttons">
+            <button class="btn btn-outline btn-talk" id="btn-talk-volume" onclick="toggleTalkVolume()">Dæmp lyden (20%)</button>
+            <button class="btn btn-next" onclick="resetForNextSong()">Scan næste kort</button>
+          </div>
         </div>
 
         <div class="controls-column">
