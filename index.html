@@ -6,62 +6,79 @@
   <title>Learn Music</title>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 12px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-variant-numeric: tabular-nums; }
+    body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 12px 16px; }
     .main-wrap { width: 100%; max-width: 960px; display: flex; flex-direction: column; flex: 1; justify-content: flex-start; }
-    .btn-fs { width: 100%; background: #000; color: #fff; border: 1px solid #fff; padding: 10px; margin-bottom: 10px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; }
+    
+    .btn-fs { width: 100%; background: transparent; color: #888; border: none; border-bottom: 0.5px solid rgba(255,255,255,0.2); padding: 8px 0; margin-bottom: 14px; font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; cursor: pointer; text-align: right; }
     .btn-fs.hidden { display: none; }
+    
     .panel { width: 100%; }
-    .btn { background: #fff; color: #000; border: 1px solid #fff; padding: 13px 16px; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; width: 100%; text-align: center; display: block; }
-    .btn-outline { background: #000; color: #fff; border: 1px solid #fff; }
-    .btn-small { background: #000; color: #ccc; border: 1px solid #444; font-size: 0.8rem; padding: 10px 12px; margin-top: 8px; font-weight: 700; text-transform: uppercase; }
-    .btn-talk.active { background: #fff; color: #000; border-color: #fff; }
-    .score-section { width: 100%; display: flex; flex-direction: column; gap: 5px; }
-    .score-bar-header { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #a7f3d0; }
-    .points-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; }
-    .btn-pt { background: #08160c; color: #a7f3d0; border: 1px solid #52b788; min-height: 54px; font-size: 1.3rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .btn-pt-max { background: #0f2918; color: #fff; border: 2px solid #a7f3d0; }
+    
+    .btn { background: transparent; color: #fff; border: 0.5px solid rgba(255,255,255,0.35); padding: 14px 16px; font-size: 0.82rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; cursor: pointer; width: 100%; text-align: center; display: block; transition: background 0.15s, color 0.15s; }
+    .btn:active { background: rgba(255,255,255,0.12); }
+    .btn-primary { background: #fff; color: #000; border: 0.5px solid #fff; font-weight: 600; }
+    .btn-small { background: transparent; color: #999; border: 0.5px solid rgba(255,255,255,0.2); font-size: 0.72rem; padding: 10px 12px; margin-top: 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; }
+    .btn-talk.active { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
+    
+    .score-section { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+    .score-bar-header { font-size: 0.65rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(167, 243, 208, 0.65); }
+    
+    .points-grid { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; border-top: 0.5px solid rgba(110, 231, 183, 0.35); border-bottom: 0.5px solid rgba(110, 231, 183, 0.35); }
+    .btn-pt { background: transparent; color: #a7f3d0; border: none; border-right: 0.5px solid rgba(110, 231, 183, 0.2); min-height: 54px; font-size: 1.2rem; font-weight: 400; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .btn-pt:last-child { border-right: none; }
+    .btn-pt-max { color: #fff; font-weight: 600; background: rgba(82, 183, 136, 0.08); }
     .btn-pt:active { background: #a7f3d0; color: #000; }
-    input[type="text"], select { width: 100%; padding: 12px; border: 1px solid #666; background: #000; color: #fff; font-size: 0.95rem; margin-top: 8px; margin-bottom: 12px; }
-    label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; display: block; }
-    #reader { width: 100%; background: #000; border: 1px solid #333; }
-    .stage-grid { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; align-items: start; }
-    .visual-column { width: 100%; display: flex; flex-direction: column; gap: 8px; }
-    .controls-column { width: 100%; display: flex; flex-direction: column; gap: 8px; }
-    .status-box { border: 2px solid #fff; padding: 18px 16px; text-align: center; background: #000; }
-    .status-box.paused { background: #fff; color: #000; }
-    .timer-readout { font-size: 3.4rem; font-weight: 900; line-height: 1; letter-spacing: -0.03em; margin-bottom: 6px; }
-    .status-label { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-    .cover-wrap { width: 100%; border: 1px solid #fff; background: #000; display: none; }
-    .cover-wrap img { width: 100%; max-height: 28vh; object-fit: contain; display: block; margin: 0 auto; }
+    
+    input[type="text"], select { width: 100%; padding: 12px 0; border: none; border-bottom: 0.5px solid rgba(255,255,255,0.35); background: #000; color: #fff; font-size: 0.95rem; margin-top: 4px; margin-bottom: 16px; outline: none; }
+    label { font-size: 0.7rem; color: #777; text-transform: uppercase; letter-spacing: 0.12em; display: block; }
+    
+    #reader { width: 100%; background: #000; }
+    
+    .stage-grid { display: grid; grid-template-columns: 1fr; gap: 14px; width: 100%; align-items: start; }
+    .visual-column { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+    .controls-column { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+    
+    .status-box { padding: 26px 0; text-align: center; border-bottom: 0.5px solid rgba(255,255,255,0.18); }
+    .status-box.paused .timer-readout { color: #fff; }
+    .status-box.paused .status-label { color: #fff; }
+    .timer-readout { font-size: 4.2rem; font-weight: 200; line-height: 1; letter-spacing: -0.04em; margin-bottom: 8px; }
+    .status-label { font-size: 0.75rem; font-weight: 400; text-transform: uppercase; letter-spacing: 0.16em; color: #888; }
+    
+    .cover-wrap { width: 100%; background: #000; display: none; padding: 2px 0; }
+    .cover-wrap img { width: 100%; max-height: 31vh; aspect-ratio: 1 / 1; object-fit: contain; display: block; margin: 0 auto; border: none; }
+    
     @media (orientation: landscape) {
-      .stage-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
-      .cover-wrap img { max-height: 44vh; }
+      .stage-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+      .cover-wrap img { max-height: 46vh; }
     }
-    .help-box { border: 1px solid #fff; padding: 10px 12px; background: #000; }
-    .box-header { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; font-weight: 700; }
-    .help-option-item { font-size: 1.1rem; font-weight: 700; color: #fff; padding: 6px 0; border-bottom: 1px solid #333; }
-    .help-option-item:last-child { border-bottom: none; padding-bottom: 0; }
-    .help-option-item:first-child { padding-top: 0; }
-    .bonus-box { border: 2px solid #fff; padding: 12px; background: #fff; color: #000; text-align: center; }
-    .bonus-box .box-header { color: #444; margin-bottom: 4px; }
-    .bonus-a { font-size: 1.35rem; font-weight: 900; }
-    .score-footer { width: 100%; text-align: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid #222; }
-    .total-points-large { font-size: 2.8rem; font-weight: 900; line-height: 1; color: #fff; letter-spacing: -0.03em; }
-    .total-cards-small { font-size: 0.78rem; font-weight: 600; color: #777; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
-    .fh-overlay { position: fixed; inset: 0; background: #fff; color: #000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; z-index: 9999; cursor: pointer; }
-    .fh-title { font-size: 3.2rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em; line-height: 1.05; margin-bottom: 16px; border-bottom: 4px solid #000; padding-bottom: 16px; }
-    .fh-sub { font-size: 1.4rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
-    details.settings-drawer { width: 100%; max-width: 960px; background: #000; border-top: 1px solid #222; padding: 10px 0 0 0; margin-top: 10px; color: #666; font-size: 0.8rem; }
-    details.settings-drawer summary { cursor: pointer; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; list-style: none; display: flex; justify-content: space-between; align-items: center; }
-    .drawer-content { margin-top: 12px; padding-top: 12px; border-top: 1px solid #222; }
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid #222; color: #fff; font-weight: 600; }
+    
+    .help-box { padding: 4px 0; }
+    .box-header { font-size: 0.65rem; color: #666; text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 6px; font-weight: 500; }
+    .help-option-item { font-size: 1.05rem; font-weight: 400; color: #eee; padding: 10px 0; border-bottom: 0.5px solid rgba(255,255,255,0.15); }
+    .help-option-item:first-child { border-top: 0.5px solid rgba(255,255,255,0.15); }
+    
+    .bonus-box { padding: 14px 0; border-top: 0.5px solid rgba(255,255,255,0.3); border-bottom: 0.5px solid rgba(255,255,255,0.3); text-align: center; }
+    .bonus-a { font-size: 1.35rem; font-weight: 600; color: #fff; letter-spacing: 0.01em; margin-top: 4px; }
+    
+    .score-footer { width: 100%; text-align: center; margin-top: 16px; padding-top: 12px; border-top: 0.5px solid rgba(255,255,255,0.15); }
+    .total-points-large { font-size: 2.8rem; font-weight: 300; line-height: 1; color: #fff; letter-spacing: -0.03em; }
+    .total-cards-small { font-size: 0.68rem; font-weight: 400; color: #666; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.14em; }
+    
+    .fh-overlay { position: fixed; inset: 0; background: #000; color: #fff; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; z-index: 9999; cursor: pointer; }
+    .fh-title { font-size: 2.8rem; font-weight: 200; text-transform: uppercase; letter-spacing: 0.08em; line-height: 1.1; margin-bottom: 16px; border-bottom: 0.5px solid rgba(255,255,255,0.4); padding-bottom: 16px; }
+    .fh-sub { font-size: 0.9rem; font-weight: 400; text-transform: uppercase; letter-spacing: 0.18em; color: #a7f3d0; }
+    
+    details.settings-drawer { width: 100%; max-width: 960px; background: #000; border-top: 0.5px solid rgba(255,255,255,0.15); padding: 10px 0 0 0; margin-top: 12px; color: #555; font-size: 0.72rem; }
+    details.settings-drawer summary { cursor: pointer; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+    .drawer-content { margin-top: 12px; padding-top: 12px; border-top: 0.5px solid rgba(255,255,255,0.1); }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 0.5px solid rgba(255,255,255,0.1); color: #bbb; font-weight: 400; }
   </style>
 </head>
 <body>
 
   <div id="full-house-overlay" class="fh-overlay" onclick="dismissFullHouseNow()">
-    <div class="fh-title">6 POINT. FULDT HUS.</div>
+    <div class="fh-title">6 Point · Fuldt Hus</div>
     <div class="fh-sub">Fjern et kort fra bordet</div>
   </div>
 
@@ -71,11 +88,11 @@
     <div id="auth-panel" class="panel">
       <label for="client-id">Spotify Client ID</label>
       <input type="text" id="client-id" placeholder="Indsæt dit Client ID her">
-      <button class="btn" onclick="loginWithSpotify()">Forbind med Spotify</button>
+      <button class="btn btn-primary" onclick="loginWithSpotify()">Forbind med Spotify</button>
     </div>
 
     <div id="scanner-panel" class="panel" style="display: none;">
-      <button class="btn" id="scan-start-btn" style="margin-bottom: 12px;" onclick="initScannerFromTap()">Start scanner</button>
+      <button class="btn btn-primary" id="scan-start-btn" style="margin-bottom: 12px;" onclick="initScannerFromTap()">Start scanner</button>
       <div id="reader"></div>
     </div>
 
@@ -84,17 +101,17 @@
         <div class="visual-column">
           <div id="blind-indicator" class="status-box">
             <div class="timer-readout" id="status-disc">10s</div>
-            <p class="status-label" id="status-text">Lyt! Læg telefonen ned</p>
+            <p class="status-label" id="status-text">Lyt · Læg telefonen ned</p>
           </div>
 
           <div id="cover-container" class="cover-wrap">
             <img id="album-cover-img" src="" alt="Pladecover">
           </div>
 
-          <button class="btn btn-outline btn-talk" id="btn-talk-volume" onclick="toggleTalkVolume()">Dæmp lyden (20%)</button>
+          <button class="btn btn-talk" id="btn-talk-volume" onclick="toggleTalkVolume()">Dæmp lyden (20%)</button>
 
           <div class="score-section">
-            <div class="score-bar-header">Giv point + scan næste</div>
+            <div class="score-bar-header">Point + scan næste</div>
             <div class="points-grid">
               <button class="btn-pt" onclick="recordScoreAndScan(0)">0</button>
               <button class="btn-pt" onclick="recordScoreAndScan(1)">1</button>
@@ -108,16 +125,16 @@
         </div>
 
         <div class="controls-column">
-          <button class="btn" id="btn-continue-play" style="display: none;" onclick="continuePlaying(false)">Spil videre nu</button>
-          <button class="btn btn-outline" id="btn-reveal-stage" onclick="openBonusStage()">Vis cover og bonus</button>
-          <button class="btn btn-outline" id="btn-get-help" style="display: none;" onclick="showHelp()">Få hjælp</button>
+          <button class="btn btn-primary" id="btn-continue-play" style="display: none;" onclick="continuePlaying(false)">Spil videre nu</button>
+          <button class="btn" id="btn-reveal-stage" onclick="openBonusStage()">Vis cover og bonus</button>
+          <button class="btn" id="btn-get-help" style="display: none;" onclick="showHelp()">Få hjælp</button>
 
           <div id="help-options-box" class="help-box" style="display: none;">
             <div class="box-header">Svarmuligheder</div>
             <div id="help-options-list"></div>
           </div>
 
-          <button class="btn" id="btn-show-bonus" style="display: none;" onclick="revealBonus()">Vis svar</button>
+          <button class="btn btn-primary" id="btn-show-bonus" style="display: none;" onclick="revealBonus()">Vis svar</button>
 
           <div id="bonus-answer-box" class="bonus-box" style="display: none;">
             <div class="box-header">Korrekt svar</div>
@@ -141,7 +158,7 @@
       <button class="btn btn-small" onclick="loadDevices()">Opdater højttalere</button>
       <div class="toggle-row">
         <span>10s lyt + 20s tænkepause</span>
-        <input type="checkbox" id="speed-mode-toggle" checked style="width: 22px; height: 22px;">
+        <input type="checkbox" id="speed-mode-toggle" checked style="width: 20px; height: 20px;">
       </div>
       <button class="btn btn-small" style="margin-top: 12px;" onclick="resetGameScore()">Nulstil point (nyt spil)</button>
       <button class="btn btn-small" style="margin-top: 8px;" onclick="forceRelogin()">Log ind på Spotify på ny</button>
@@ -682,7 +699,7 @@
       clearTimers();
       const { trackId, correctAnswer, options } = parseQrPayload(code);
       if (!trackId || !correctAnswer || options.length < 3) {
-        alert("Ugyldig QR-kode. Formatet skal være: Spotify-link|Korrekt svar|Forkert svar 1|Forkert svar 2");
+        alert("Ugyldig QR-kode");
         startScanner();
         return;
       }
@@ -729,7 +746,7 @@
       if (speedMode) {
         let secondsLeft = 10;
         disc.textContent = "10s";
-        statusText.textContent = "Lyt! Læg telefonen ned";
+        statusText.textContent = "Lyt · Læg telefonen ned";
 
         countdownInterval = setInterval(() => {
           secondsLeft--;
@@ -785,7 +802,7 @@
       disc.textContent = "LYT";
       indicatorBox.classList.remove("paused");
       document.getElementById("status-text").textContent = autoStarted
-        ? "20 sek gået. Spiller videre"
+        ? "20 sek gået · Spiller videre"
         : "Spiller videre";
       document.getElementById("btn-continue-play").style.display = "none";
     }
