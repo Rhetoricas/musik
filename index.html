@@ -7,43 +7,41 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 16px; }
+    body { background-color: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 12px; }
     .main-wrap { width: 100%; max-width: 960px; display: flex; flex-direction: column; flex: 1; justify-content: flex-start; }
-    .top-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid #333; }
-    h1 { font-size: 1.1rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
-    .btn-fs { background: #000; color: #fff; border: 1px solid #fff; padding: 6px 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; }
+    .btn-fs { width: 100%; background: #000; color: #fff; border: 1px solid #fff; padding: 10px; margin-bottom: 12px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; }
     .btn-fs.hidden { display: none; }
     .panel { width: 100%; }
-    .btn { background: #fff; color: #000; border: 1px solid #fff; padding: 16px 18px; font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; width: 100%; text-align: center; display: block; }
-    .btn-outline { background: #000; color: #fff; border: 1px solid #fff; margin-top: 12px; }
-    .btn-subtle { background: #000; color: #aaa; border: 1px solid #444; margin-top: 12px; }
+    .btn { background: #fff; color: #000; border: 1px solid #fff; padding: 15px 18px; font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; width: 100%; text-align: center; display: block; }
+    .btn-outline { background: #000; color: #fff; border: 1px solid #fff; }
+    .btn-subtle { background: #000; color: #aaa; border: 1px solid #444; }
     .btn-small { background: #000; color: #ccc; border: 1px solid #444; font-size: 0.8rem; padding: 10px 12px; margin-top: 8px; font-weight: 700; text-transform: uppercase; }
     .btn-talk.active { background: #fff; color: #000; border-color: #fff; }
     input[type="text"], select { width: 100%; padding: 12px; border: 1px solid #666; background: #000; color: #fff; font-size: 0.95rem; margin-top: 8px; margin-bottom: 12px; }
     label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; display: block; }
     #reader { width: 100%; background: #000; margin-top: 12px; border: 1px solid #333; }
-    .stage-grid { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; align-items: start; }
-    @media (orientation: landscape) {
-      .stage-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
-    }
-    .visual-column { width: 100%; display: flex; flex-direction: column; gap: 14px; }
-    .controls-column { width: 100%; display: flex; flex-direction: column; }
-    .controls-column .btn:first-child { margin-top: 0; }
-    .status-box { border: 2px solid #fff; padding: 28px 16px; text-align: center; background: #000; }
+    .stage-grid { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; align-items: start; }
+    .visual-column { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+    .controls-column { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+    .status-box { border: 2px solid #fff; padding: 24px 16px; text-align: center; background: #000; }
     .status-box.paused { background: #fff; color: #000; }
-    .timer-readout { font-size: 4rem; font-weight: 900; line-height: 1; letter-spacing: -0.03em; margin-bottom: 10px; }
+    .timer-readout { font-size: 3.8rem; font-weight: 900; line-height: 1; letter-spacing: -0.03em; margin-bottom: 8px; }
     .status-label { font-size: 0.95rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
     .cover-wrap { width: 100%; border: 1px solid #fff; background: #000; display: none; }
-    .cover-wrap img { width: 100%; max-height: 52vh; object-fit: contain; display: block; margin: 0 auto; }
-    .help-box { border: 1px solid #fff; padding: 14px; background: #000; }
-    .box-header { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; font-weight: 700; }
-    .help-option-item { font-size: 1.25rem; font-weight: 700; color: #fff; padding: 10px 0; border-bottom: 1px solid #333; }
+    .cover-wrap img { width: 100%; max-height: 36vh; object-fit: contain; display: block; margin: 0 auto; }
+    @media (orientation: landscape) {
+      .stage-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+      .cover-wrap img { max-height: 52vh; }
+    }
+    .help-box { border: 1px solid #fff; padding: 12px; background: #000; }
+    .box-header { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; font-weight: 700; }
+    .help-option-item { font-size: 1.15rem; font-weight: 700; color: #fff; padding: 8px 0; border-bottom: 1px solid #333; }
     .help-option-item:last-child { border-bottom: none; padding-bottom: 0; }
     .help-option-item:first-child { padding-top: 0; }
-    .bonus-box { border: 2px solid #fff; padding: 18px; background: #fff; color: #000; text-align: center; }
-    .bonus-box .box-header { color: #444; margin-bottom: 6px; }
-    .bonus-a { font-size: 1.5rem; font-weight: 900; }
-    details.settings-drawer { width: 100%; max-width: 960px; background: #000; border-top: 1px solid #333; padding: 14px 0 0 0; margin-top: 24px; color: #aaa; font-size: 0.85rem; }
+    .bonus-box { border: 2px solid #fff; padding: 14px; background: #fff; color: #000; text-align: center; }
+    .bonus-box .box-header { color: #444; margin-bottom: 4px; }
+    .bonus-a { font-size: 1.4rem; font-weight: 900; }
+    details.settings-drawer { width: 100%; max-width: 960px; background: #000; border-top: 1px solid #333; padding: 12px 0 0 0; margin-top: 16px; color: #aaa; font-size: 0.85rem; }
     details.settings-drawer summary { cursor: pointer; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; list-style: none; display: flex; justify-content: space-between; align-items: center; }
     .drawer-content { margin-top: 12px; padding-top: 12px; border-top: 1px solid #222; }
     .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid #222; color: #fff; font-weight: 600; }
@@ -52,10 +50,7 @@
 <body>
 
   <div class="main-wrap">
-    <div class="top-bar">
-      <h1>Learn Music</h1>
-      <button id="fullscreen-btn" class="btn-fs" onclick="enterFullscreenAndWakeLock()">Fuldskærm</button>
-    </div>
+    <button id="fullscreen-btn" class="btn-fs" onclick="enterFullscreenAndWakeLock()">Fuldskærm</button>
 
     <div id="auth-panel" class="panel">
       <label for="client-id">Spotify Client ID</label>
@@ -80,24 +75,26 @@
             <img id="album-cover-img" src="" alt="Pladecover">
           </div>
 
+          <button class="btn btn-outline btn-talk" id="btn-talk-volume" onclick="toggleTalkVolume()">Dæmp lyden (20%)</button>
+          <button class="btn btn-subtle" onclick="resetForNextSong()">Scan næste kort</button>
+        </div>
+
+        <div class="controls-column">
+          <button class="btn" id="btn-continue-play" style="display: none;" onclick="continuePlaying(false)">Spil videre nu</button>
+          <button class="btn btn-outline" id="btn-reveal-stage" onclick="openBonusStage()">Vis cover og bonus</button>
+          <button class="btn btn-outline" id="btn-get-help" style="display: none;" onclick="showHelp()">Få hjælp</button>
+
           <div id="help-options-box" class="help-box" style="display: none;">
             <div class="box-header">Svarmuligheder</div>
             <div id="help-options-list"></div>
           </div>
 
+          <button class="btn" id="btn-show-bonus" style="display: none;" onclick="revealBonus()">Vis svar</button>
+
           <div id="bonus-answer-box" class="bonus-box" style="display: none;">
             <div class="box-header">Korrekt svar</div>
             <div id="bonus-answer-text" class="bonus-a"></div>
           </div>
-        </div>
-
-        <div class="controls-column">
-          <button class="btn" id="btn-continue-play" style="display: none; margin-bottom: 12px;" onclick="continuePlaying(false)">Spil videre nu</button>
-          <button class="btn btn-outline btn-talk" id="btn-talk-volume" onclick="toggleTalkVolume()">Dæmp lyden (20%)</button>
-          <button class="btn btn-outline" id="btn-reveal-stage" onclick="openBonusStage()">Vis cover og bonus</button>
-          <button class="btn btn-outline" id="btn-get-help" style="display: none;" onclick="showHelp()">Få hjælp</button>
-          <button class="btn" id="btn-show-bonus" style="display: none; margin-top: 12px;" onclick="revealBonus()">Vis svar</button>
-          <button class="btn btn-subtle" onclick="resetForNextSong()">Scan næste kort</button>
         </div>
       </div>
     </div>
