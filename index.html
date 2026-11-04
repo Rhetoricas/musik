@@ -24,10 +24,9 @@
     .score-section { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
     .score-bar-header { font-size: 0.65rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(167, 243, 208, 0.65); }
     
-    .points-grid { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; border-top: 0.5px solid rgba(110, 231, 183, 0.35); border-bottom: 0.5px solid rgba(110, 231, 183, 0.35); }
-    .btn-pt { background: transparent; color: #a7f3d0; border: none; border-right: 0.5px solid rgba(110, 231, 183, 0.2); min-height: 54px; font-size: 1.2rem; font-weight: 400; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .points-grid { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; border-top: 0.5px solid rgba(110, 231, 183, 0.35); border-bottom: 0.5px solid rgba(110, 231, 183, 0.35); }
+    .btn-pt { background: transparent; color: #a7f3d0; border: none; border-right: 0.5px solid rgba(110, 231, 183, 0.2); min-height: 54px; font-size: 1.15rem; font-weight: 400; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .btn-pt:last-child { border-right: none; }
-    .btn-pt-max { color: #fff; font-weight: 600; background: rgba(82, 183, 136, 0.08); }
     .btn-pt:active { background: #a7f3d0; color: #000; }
     
     input[type="text"], select { width: 100%; padding: 12px 0; border: none; border-bottom: 0.5px solid rgba(255,255,255,0.35); background: #000; color: #fff; font-size: 0.95rem; margin-top: 4px; margin-bottom: 16px; outline: none; }
@@ -78,8 +77,8 @@
 <body>
 
   <div id="full-house-overlay" class="fh-overlay" onclick="dismissFullHouseNow()">
-    <div class="fh-title">6 Point · Fuldt Hus</div>
-    <div class="fh-sub">Fjern et kort fra bordet</div>
+    <div id="fh-title-text" class="fh-title">6 Point · Fuldt Hus</div>
+    <div id="fh-sub-text" class="fh-sub">Fjern et kort fra bordet</div>
   </div>
 
   <div class="main-wrap">
@@ -119,7 +118,8 @@
               <button class="btn-pt" onclick="recordScoreAndScan(3)">3</button>
               <button class="btn-pt" onclick="recordScoreAndScan(4)">4</button>
               <button class="btn-pt" onclick="recordScoreAndScan(5)">5</button>
-              <button class="btn-pt btn-pt-max" onclick="recordScoreAndScan(6)">6</button>
+              <button class="btn-pt" onclick="recordScoreAndScan(6)">6</button>
+              <button class="btn-pt" onclick="recordScoreAndScan(7)">7</button>
             </div>
           </div>
         </div>
@@ -174,6 +174,7 @@
     const DEVICE_KEY = "spotify_saved_device_id";
     const DEVICE_NAME_KEY = "spotify_saved_device_name";
     const SCORE_HISTORY_KEY = "spotify_game_score_history";
+    const NORMAL_VOL_KEY = "spotify_saved_normal_volume";
 
     let token = null;
     let html5QrCode = null;
@@ -183,13 +184,20 @@
     let countdownInterval = null;
     let fullHouseTimer = null;
     let isTalkVolume = false;
-    let normalVolume = 60;
+    let normalVolume = Number(localStorage.getItem(NORMAL_VOL_KEY)) || 55;
     let wakeLockSentinel = null;
     let refreshPromise = null;
     let currentCorrectAnswer = "";
     let currentOptions = [];
     let currentCoverUrl = "";
     let scoreHistory = [];
+
+    function saveNormalVolume(vol) {
+      if (typeof vol === "number" && vol > 20 && vol <= 90) {
+        normalVolume = vol;
+        localStorage.setItem(NORMAL_VOL_KEY, String(vol));
+      }
+    }
 
     function loadScoreHistory() {
       try {
@@ -494,8 +502,8 @@
           opt.textContent = `${dev.name} (${dev.type})`;
           if (dev.is_active) {
             opt.selected = true;
-            if (typeof dev.volume_percent === "number" && dev.volume_percent > 20) {
-              normalVolume = dev.volume_percent;
+            if (typeof dev.volume_percent === "number") {
+              saveNormalVolume(dev.volume_percent);
             }
           }
           select.appendChild(opt);
@@ -530,29 +538,30 @@
       }
     }
 
-    async function syncNormalVolume() {
-      if (!token) return;
+    async function syncNormalVolumeBeforeDim() {
+      if (!token || isTalkVolume) return;
+      const selectedDeviceId = document.getElementById("device-select").value || localStorage.getItem(DEVICE_KEY);
       try {
         const res = await spotifyFetch("https://api.spotify.com/v1/me/player", {}, 1);
         if (res && res.status === 200) {
           const state = await res.json();
-          if (state && state.device && typeof state.device.volume_percent === "number") {
-            const currentVol = state.device.volume_percent;
-            if (!isTalkVolume && currentVol > 20) {
-              normalVolume = currentVol;
-            } else if (isTalkVolume && currentVol > 25) {
-              normalVolume = currentVol;
-              setTalkVolumeUI(false);
-            }
+          if (
+            state &&
+            state.device &&
+            (!selectedDeviceId || state.device.id === selectedDeviceId) &&
+            typeof state.device.volume_percent === "number"
+          ) {
+            saveNormalVolume(state.device.volume_percent);
           }
         }
       } catch (e) {}
     }
 
     async function setSpotifyVolume(vol) {
-      const selectedDeviceId = document.getElementById("device-select").value;
+      const selectedDeviceId = document.getElementById("device-select").value || localStorage.getItem(DEVICE_KEY);
       if (!token || !selectedDeviceId) return;
-      await spotifyFetch(`https://api.spotify.com/v1/me/player/volume?volume_percent=${vol}&device_id=${selectedDeviceId}`, {
+      const safeVol = Math.max(0, Math.min(90, Math.round(vol)));
+      await spotifyFetch(`https://api.spotify.com/v1/me/player/volume?volume_percent=${safeVol}&device_id=${selectedDeviceId}`, {
         method: "PUT"
       });
     }
@@ -572,7 +581,7 @@
     async function toggleTalkVolume() {
       enterFullscreenAndWakeLock();
       if (!isTalkVolume) {
-        await syncNormalVolume();
+        await syncNormalVolumeBeforeDim();
         await setSpotifyVolume(20);
         setTalkVolumeUI(true);
       } else {
@@ -716,7 +725,6 @@
       currentOptions = options;
       fetchTrackCover(trackId);
 
-      await syncNormalVolume();
       if (isTalkVolume) {
         await setSpotifyVolume(normalVolume);
         setTalkVolumeUI(false);
@@ -755,7 +763,6 @@
 
         speedTimer = setTimeout(async () => {
           clearInterval(countdownInterval);
-          await syncNormalVolume();
           await spotifyFetch(`https://api.spotify.com/v1/me/player/pause?device_id=${selectedDeviceId}`, {
             method: "PUT"
           });
@@ -787,7 +794,6 @@
 
       const selectedDeviceId = document.getElementById("device-select").value || localStorage.getItem(DEVICE_KEY);
 
-      await syncNormalVolume();
       if (isTalkVolume) {
         await setSpotifyVolume(normalVolume);
         setTalkVolumeUI(false);
@@ -855,8 +861,14 @@
       enterFullscreenAndWakeLock();
       clearTimers();
 
+      const prevTotal = scoreHistory.reduce((sum, pts) => sum + pts, 0);
       scoreHistory.push(points);
       saveScoreHistory();
+      const newTotal = prevTotal + points;
+
+      const crossedMilestone = points > 0 && Math.floor(newTotal / 20) > Math.floor(prevTotal / 20);
+      const milestoneValue = Math.floor(newTotal / 20) * 20;
+      const isFullHouse = points >= 6;
 
       const selectedDeviceId = document.getElementById("device-select").value || localStorage.getItem(DEVICE_KEY);
       if (selectedDeviceId) {
@@ -867,12 +879,26 @@
 
       document.getElementById("playback-panel").style.display = "none";
 
-      if (points === 6) {
+      if (isFullHouse || crossedMilestone) {
         const overlay = document.getElementById("full-house-overlay");
+        const titleEl = document.getElementById("fh-title-text");
+        const subEl = document.getElementById("fh-sub-text");
+
+        if (isFullHouse && crossedMilestone) {
+          titleEl.textContent = `${points} Point + ${milestoneValue} Point`;
+          subEl.textContent = "Fjern 2 kort fra bordet";
+        } else if (isFullHouse) {
+          titleEl.textContent = `${points} Point · Fuldt Hus`;
+          subEl.textContent = "Fjern et kort fra bordet";
+        } else {
+          titleEl.textContent = `${milestoneValue} Point Nået`;
+          subEl.textContent = "Fjern et kort fra bordet";
+        }
+
         overlay.style.display = "flex";
         fullHouseTimer = setTimeout(() => {
           dismissFullHouseNow();
-        }, 1800);
+        }, 2200);
       } else {
         startScanner();
       }
